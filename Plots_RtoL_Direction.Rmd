@@ -1,0 +1,351 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, warning=FALSE, message=FALSE, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(dplyr)
+
+require(ggplot2)
+
+```
+
+```{r pitch, include = FALSE, include = FALSE}
+
+
+# Code courtesy of FC Python
+
+grass_colour <- "#775D6A"
+line_colour <- "#F4828C"
+background_colour <- "#775D6A"
+goal_colour <- "#7E3C5D"
+ymax <- 7040
+xmax <- 10600
+
+
+createPitch <- function(xmax, ymax, grass_colour, line_colour, background_colour, goal_colour){
+  theme_blankPitch = function(size=12) { 
+    theme(
+      #axis.line=element_blank(), 
+      axis.text.x=element_blank(), 
+      axis.text.y=element_blank(), 
+      #axis.ticks.y=element_text(size=size),
+      #   axis.ticks=element_blank(),
+      axis.ticks.length=unit(0, "lines"), 
+      #axis.ticks.margin=unit(0, "lines"), 
+      axis.title.x=element_blank(), 
+      axis.title.y=element_blank(), 
+      legend.background=element_rect(fill=background_colour, colour=NA), 
+      legend.key=element_rect(colour=background_colour,fill=background_colour), 
+      legend.key.size=unit(1.2, "lines"), 
+      legend.text=element_text(size=size), 
+      legend.title=element_text(size=size, face="bold",hjust=0),
+      strip.background = element_rect(colour = background_colour, fill = background_colour, size = .5),
+      panel.background=element_rect(fill=background_colour,colour=background_colour), 
+      #       panel.border=element_blank(), 
+      panel.grid.major=element_blank(), 
+      panel.grid.minor=element_blank(), 
+      panel.spacing=element_blank(), 
+      plot.background=element_blank(), 
+      plot.margin=unit(c(0, 0, 0, 0), "lines"), 
+      plot.title=element_text(size=size*1.2), 
+      strip.text.y=element_text(colour=background_colour,size=size,angle=270),
+      strip.text.x=element_text(size=size*1))}
+  
+  ymin <- 0 
+  xmin <- 0 
+  
+  # Defining dimensions
+  GoalWidth <- 732
+  penspot <- 1100
+  boxedgeW <- 4032
+  boxedgeL <- 1650
+  box6yardW <- 1832
+  box6yardL <- 550
+  
+  ## dimensions calculations 
+  # The 18 Yard Box
+  TheBoxWidth <- c(((ymax / 2) + (boxedgeW / 2)),((ymax / 2) - (boxedgeW / 2)))
+  TheBoxHeight <- c(boxedgeL,xmax-boxedgeL)
+  GoalPosts <- c(((ymax / 2) + (GoalWidth / 2)),((ymax / 2) - (GoalWidth / 2)))
+  
+  # The 6 Yard Box
+  box6yardWidth <- c(((ymax / 2) + (box6yardW / 2)),((ymax / 2) - (box6yardW / 2)))
+  box6yardHeight <- c(box6yardL,xmax-box6yardL)
+  
+  ## Centre circle dimensions 
+  centreCirle_d <- 1830
+  
+  ## define the circle function
+  circleFun <- function(center = c(0,0),diameter = 1, npoints = 100){
+    r = diameter / 2
+    tt <- seq(0,2*pi,length.out = npoints)
+    xx <- center[1] + r * cos(tt)
+    yy <- center[2] + r * sin(tt)
+    return(data.frame(x = xx, y = yy))
+  }
+  
+  #### create leftD arc ####
+  Dleft <- circleFun(c((penspot),(ymax/2)),centreCirle_d,npoints = 1000)
+  ## remove part that is in the box
+  Dleft <- Dleft[which(Dleft$x >= (boxedgeL)),]
+  
+  ## create rightD arc  ####
+  Dright <- circleFun(c((xmax-(penspot)),(ymax/2)),centreCirle_d,npoints = 1000)
+  ## remove part that is in the box
+  Dright <- Dright[which(Dright$x <= (xmax-(boxedgeL))),]
+  
+  #### create center circle ####
+  center_circle <- circleFun(c((xmax/2),(ymax/2)),centreCirle_d,npoints = 100)
+  
+  ## create corner flag radius ####
+  TopLeftCorner <- circleFun(c(xmin,ymax),200,npoints = 1000)
+  TopRightCorner <- circleFun(c(xmax,ymax),200,npoints = 1000)
+  BottomLeftCorner <- circleFun(c(xmin,ymin),200,npoints = 1000)
+  BottomRightCorner <- circleFun(c(xmax,ymin),200,npoints = 1000)
+  
+  p <- ggplot() + xlim(c(-10,xmax+10)) + ylim(c(-10,ymax+10)) + 
+    # add the theme 
+    theme_blankPitch() +
+    # add the base rectangle of the pitch 
+    geom_rect(aes(xmin=0, xmax=xmax, ymin=0, ymax=ymax), fill = grass_colour, colour = line_colour) +
+    # add the 18 yard box Left
+    geom_rect(aes(xmin=0, xmax=TheBoxHeight[1], ymin=TheBoxWidth[1], ymax=TheBoxWidth[2]), fill = grass_colour, colour = line_colour) + 
+    # add the 18 yard box Right
+    geom_rect(aes(xmin=TheBoxHeight[2], xmax=xmax, ymin=TheBoxWidth[1], ymax=TheBoxWidth[2]), fill = grass_colour, colour = line_colour) +
+    # add the six yard box Left
+    geom_rect(aes(xmin=0, xmax=box6yardHeight[1], ymin=box6yardWidth[1], ymax=box6yardWidth[2]), fill = grass_colour, colour = line_colour)  +
+    # add the six yard box Right
+    geom_rect(aes(xmin=box6yardHeight[2], xmax=xmax, ymin=box6yardWidth[1], ymax=box6yardWidth[2]), fill = grass_colour, colour = line_colour)  + 
+    # Add half way line 
+    geom_segment(aes(x = xmax/2, y = ymin, xend = xmax/2, yend = ymax),colour = line_colour) +
+    # add left D 
+    geom_path(data=Dleft, aes(x=x,y=y), colour = line_colour) + 
+    # add Right D 
+    geom_path(data=Dright, aes(x=x,y=y), colour = line_colour) + 
+    # add centre circle 
+    geom_path(data=center_circle, aes(x=x,y=y), colour = line_colour) + 
+    # add penalty spot left 
+    geom_point(aes(x = penspot , y = ymax/2), colour = line_colour) + 
+    # add penalty spot right
+    geom_point(aes(x = (xmax-(penspot)) , y = ymax/2), colour = line_colour) + 
+    # add centre spot 
+    geom_point(aes(x = (xmax/2) , y = ymax/2), colour = line_colour) +
+    # add Corner Flag corners
+    geom_path(data=TopLeftCorner, aes(x=x,y=y), colour = line_colour) +
+    geom_path(data=TopRightCorner, aes(x=x,y=y), colour = line_colour) +
+    geom_path(data=BottomLeftCorner, aes(x=x,y=y), colour = line_colour) +
+    geom_path(data=BottomRightCorner, aes(x=x,y=y), colour = line_colour) +
+    geom_segment(aes(x = xmin, y = GoalPosts[1], xend = xmin, yend = GoalPosts[2]),colour = goal_colour, size = 1) +
+    # add the goal right
+    geom_segment(aes(x = xmax, y = GoalPosts[1], xend = xmax, yend = GoalPosts[2]),colour = goal_colour, size = 1) 
+  return(p)
+}
+
+```
+
+
+
+```{r team passes, warning=FALSE, message=FALSE, include = FALSE }
+
+tP <- read.csv("UnhUvm1Half.csv")
+
+# successful passes
+SuccPass <- tP %>% filter(Team == "Success" & Player == "UVM")
+
+# failed passes 
+FailPass <- tP %>% filter(Team == "Fail" & Player == "UVM")
+
+
+# scale pass start coordinates
+SuccPassScale <- SuccPass %>%  mutate(xstart = 106 * X) %>%
+  mutate(ystart = 70.4 * Y) %>%
+  mutate(xendd = 106 * X2) %>%
+  mutate(yendd = 70.4 * Y2) %>%
+  select(Team, Player, xstart, xendd, ystart, yendd)
+
+# scale pass start coordinates
+FailPassScale <- FailPass %>% mutate(xstart = 106 * X) %>%
+  mutate(ystart = 70.4 * Y) %>%
+  mutate(xendd = 106 * X2) %>%
+  mutate(yendd = 70.4 * Y2) %>%
+  select(Team, Player, xstart, xendd, ystart, yendd)
+
+# for when recording is done Right to Left
+SuccPassTeam <- SuccPassScale %>%
+  filter(xstart > xendd) %>% 
+  mutate(xdiff = -1*(xendd - xstart))
+
+FailPassTeam <- FailPassScale %>%
+  filter(xstart > xendd) %>% 
+  mutate(xdiff = -1*(xendd - xstart))
+
+# merge to make full passes df
+
+AllPass <- full_join(SuccPassTeam, FailPassTeam, by=NULL)
+
+# make pass length vectors
+ShortPass <- AllPass %>% 
+  filter(xdiff <= 834.646)%>% 
+  mutate(MakePropS = sum(Team == "Success"))%>% 
+  mutate(MissPropS = sum(Team == "Fail")) %>% 
+  mutate(TotalS = sum(Team == "Success" | Team == "Fail")) %>% 
+  mutate(AccuracyS = MakePropS/(MakePropS + MissPropS)) %>% 
+  select(MakePropS, TotalS, AccuracyS)
+
+MedPass<-AllPass %>%
+  filter(xdiff <= 2503.94) %>% 
+  filter(xdiff > 834.646) %>% 
+  mutate(MakePropM = sum(Team == "Success"))%>% 
+  mutate(MissPropM = sum(Team == "Fail")) %>% 
+  mutate(TotalM = sum(Team == "Success" | Team == "Fail")) %>% 
+  mutate(AccuracyM = MakePropM/(MakePropM + MissPropM)) %>% 
+  select(MakePropM, TotalM, AccuracyM)
+
+LongPass<-AllPass %>% 
+  filter(xdiff > 2503.94)%>% 
+  mutate(MakePropL = sum(Team == "Success"))%>% 
+  mutate(MissPropL = sum(Team == "Fail")) %>% 
+  mutate(TotalL = sum(Team == "Success" | Team == "Fail")) %>% 
+  mutate(AccuracyL = MakePropL/(MakePropL + MissPropL))%>% 
+  select(MakePropL, TotalL, AccuracyL)
+
+
+```
+
+```{r players, warning=FALSE, message=FALSE, include = FALSE}
+
+# full game file
+Fg <- read.csv(".csv")
+
+# successful passes
+SuccPassPlayers <- Fg %>% filter(Team == "Success" & Player != "UVM")
+
+# failed passes 
+FailPassPlayers <- Fg %>% filter(Team == "Fail" & Player != "UVM")
+
+# scale pass start coordinates
+PlayersScaleSucc <- SuccPassPlayers %>%  mutate(xstart = 106 * X) %>%
+  mutate(ystart = 70.4 * Y) %>%
+  mutate(xendd = 106 * X2) %>%
+  mutate(yendd = 70.4 * Y2) %>%
+  select(Team, Player, xstart, xendd, ystart, yendd)
+
+# scale pass start coordinates
+PlayersScaleFail <- FailPassPlayers %>% mutate(xstart = 106 * X) %>%
+  mutate(ystart = 70.4 * Y) %>%
+  mutate(xendd = 106 * X2) %>%
+  mutate(yendd = 70.4 * Y2) %>%
+  select(Team, Player, xstart, xendd, ystart, yendd)
+
+# for when recording is done Right to Left
+PlayersFilterSucc <- PlayersScaleSucc %>%
+  filter(xstart > xendd) %>% 
+  mutate(xdiff = -1*(xendd - xstart))
+
+PlayersFilterFail <- PlayersScaleFail %>%
+  filter(xstart > xendd) %>% 
+  mutate(xdiff = -1*(xendd - xstart))
+
+
+# barrett passes
+BarrettSuccess <- AllPlayers %>% filter(Team == "Success" & Player == "Barrett")
+
+BarrettFail <- AllPlayers %>% filter(Team == "Fail" & Player == "Barrett")
+
+# Egan passes
+EganSuccess <- AllPlayers %>% filter(Team == "Success" & Player == "Egan")
+
+EganFail <- AllPlayers %>% filter(Team == "Fail" & Player == "Egan")
+
+# Bryant passes
+BryantSuccess <- AllPlayers %>% filter(Team == "Success" & Player == "Bryant")
+
+BryantFail <- AllPlayers %>% filter(Team == "Fail" & Player == "Bryant")
+
+
+
+```
+
+
+## Passing Plot
+
+```{r plot, warning=FALSE, message=FALSE}
+
+## green 
+c <- createPitch(10600, 7040, "#538032", "#ffffff", "#538032", "#000000")
+
+# prints events attacking left to right if actual events are recorded right to left
+c+
+  geom_segment(data = SuccPassTeam, aes(x = xmax-xstart, xend = xmax-xendd, y = ystart, yend = yendd), col = "blue", arrow = arrow(length = unit(0.5, "cm"))) +
+  geom_point(data = SuccPassTeam, aes(x = xmax-xstart, y = ystart),  col = "blue", alpha = 0.5) +
+  guides(colour = FALSE)+
+  geom_segment(data = FailPassTeam, aes(x = xmax-xstart, xend = xmax-xendd, y = ystart, yend = yendd), col = "red", arrow = arrow(length = unit(0.5, "cm"))) +
+  geom_point(data = FailPassTeam, aes(x = xmax-xstart, y = ystart),  col = "red", alpha = 0.5) +
+  guides(colour = FALSE)+
+  labs(title = "UVM Fwd Passes Originating Behind Midfield 1st Half", subtitle = "Forward Passing Success = 12/19 = 63.2% successful")
+
+
+```
+
+```{r playerPlots, include=FALSE, warning=FALSE, message=FALSE }
+
+# # BARRETT
+# c+
+#   geom_segment(data = BarrettSuccess, aes(x = xmax-xstart, xend = xmax-xendd, y = ystart, yend = yendd), col = "blue", arrow = arrow(length = unit(0.5, "cm"))) +
+#   geom_point(data = SuccPass1, aes(x = xmax-xstart, y = ystart),  col = "blue", alpha = 0.5) +
+#   guides(colour = FALSE)+
+#   geom_segment(data = BarrettFail, aes(x = xmax-xstart, xend = xmax-xendd, y = ystart, yend = yendd), col = "red", arrow = arrow(length = unit(0.5, "cm"))) +
+#   geom_point(data = FailPass1, aes(x = xmax-xstart, y = ystart),  col = "red", alpha = 0.5) +
+#   guides(colour = FALSE)+
+#   labs(title = "Barrett Forward Passes", subtitle = "Forward Passing Success = 36/45 = 80% successful")
+# 
+# # EGAN
+# c+
+#   geom_segment(data = EganSuccess, aes(x = xmax-xstart, xend = xmax-xendd, y = ystart, yend = yendd), col = "blue", arrow = arrow(length = unit(0.5, "cm"))) +
+#   geom_point(data = SuccPass1, aes(x = xmax-xstart, y = ystart),  col = "blue", alpha = 0.5) +
+#   guides(colour = FALSE)+
+#   geom_segment(data = EganFail, aes(x = xmax-xstart, xend = xmax-xendd, y = ystart, yend = yendd), col = "red", arrow = arrow(length = unit(0.5, "cm"))) +
+#   geom_point(data = FailPass1, aes(x = xmax-xstart, y = ystart),  col = "red", alpha = 0.5) +
+#   guides(colour = FALSE)+
+#   labs(title = "Egan Forward Passes", subtitle = "Forward Passing Success = 36/45 = 80% successful")
+# 
+# # BRYANT
+# c+
+#   geom_segment(data = BryantSuccess, aes(x = xmax-xstart, xend = xmax-xendd, y = ystart, yend = yendd), col = "blue", arrow = arrow(length = unit(0.5, "cm"))) +
+#   geom_point(data = SuccPass1, aes(x = xmax-xstart, y = ystart),  col = "blue", alpha = 0.5) +
+#   guides(colour = FALSE)+
+#   geom_segment(data = BryantFail, aes(x = xmax-xstart, xend = xmax-xendd, y = ystart, yend = yendd), col = "red", arrow = arrow(length = unit(0.5, "cm"))) +
+#   geom_point(data = FailPass1, aes(x = xmax-xstart, y = ystart),  col = "red", alpha = 0.5) +
+#   guides(colour = FALSE)+
+#   labs(title = "Bryant Forward Passes", subtitle = "Forward Passing Success = 36/45 = 80% successful")
+
+```
+
+
+
+## Pass Lengths
+
+```{r pass lengths}
+
+# pass lengths of successful passes
+
+AllPass1 <- AllPass  %>% 
+  mutate(Su = sum(Team == "Success"))%>% 
+  mutate(Fa = sum(Team == "Fail")) %>% 
+  mutate(To = Su + Fa) %>% 
+  mutate(Perc = Su/(Su + Fa)) %>% 
+  select(Su, To, Perc)
+
+head(AllPass1, 1)
+head(ShortPass, 1)
+head(MedPass, 1)
+head(LongPass, 1)
+
+
+```
